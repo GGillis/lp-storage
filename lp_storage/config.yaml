@@ -1,0 +1,25 @@
+name: LP Storage
+description: Vinyl record collection manager — browse, search, and explore your collection.
+version: "1.0.0"
+slug: lp_storage
+init: false
+arch:
+  - aarch64
+  - amd64
+  - armv7
+
+ports:
+  8000/tcp: 8000
+ports_description:
+  8000/tcp: Web interface
+
+map:
+  - data:rw
+
+options:
+  discogs_token: ""
+  discogs_user_agent: "LPStorage/0.1"
+
+schema:
+  discogs_token: str
+  discogs_user_agent: str
