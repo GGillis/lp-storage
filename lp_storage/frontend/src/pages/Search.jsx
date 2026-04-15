@@ -165,7 +165,11 @@ export default function Search() {
       </div>
 
       {selected && (
-        <RecordDetail record={selected} onClose={() => setSelected(null)} />
+        <RecordDetail
+          record={selected}
+          onClose={() => setSelected(null)}
+          onDelete={id => { setResults(r => r.filter(x => x.id !== id)); setSelected(null) }}
+        />
       )}
     </div>
   )

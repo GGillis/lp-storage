@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Search, Plus, Check, Hash, Disc3 } from 'lucide-react'
+import { Search, Plus, Check, Hash, Disc3, Fingerprint } from 'lucide-react'
 import TagEditor from '../components/TagEditor'
 
-const MODE = { CATNO: 'catno', TITLE: 'title' }
+const MODE = { CATNO: 'catno', TITLE: 'title', DEADWAX: 'deadwax' }
 const STEP = { INPUT: 'input', MASTERS: 'masters', PRESSINGS: 'pressings', CONFIRM: 'confirm', DONE: 'done' }
 
 export default function AddRecord() {
@@ -36,6 +36,27 @@ export default function AddRecord() {
   }
 
   // ── Step handlers ──────────────────────────────────────────────────────────
+
+  async function handleDeadwaxSearch(e) {
+    e.preventDefault()
+    if (!query.trim()) return
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/lookup/deadwax?q=${encodeURIComponent(query.trim())}`)
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || 'Search failed')
+      }
+      const data = await res.json()
+      setPressings(data)
+      setStep(STEP.PRESSINGS)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   async function handleCatnoSearch(e) {
     e.preventDefault()
@@ -163,10 +184,13 @@ export default function AddRecord() {
           style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
         >
           <TabButton active={mode === MODE.CATNO} onClick={() => switchMode(MODE.CATNO)} icon={<Hash size={14} />}>
-            Catalog number
+            Catalog no.
           </TabButton>
           <TabButton active={mode === MODE.TITLE} onClick={() => switchMode(MODE.TITLE)} icon={<Search size={14} />}>
             Artist / title
+          </TabButton>
+          <TabButton active={mode === MODE.DEADWAX} onClick={() => switchMode(MODE.DEADWAX)} icon={<Fingerprint size={14} />}>
+            Dead wax
           </TabButton>
         </div>
       )}
@@ -174,34 +198,35 @@ export default function AddRecord() {
       {/* Step: Input */}
       {step === STEP.INPUT && (
         <form
-          onSubmit={mode === MODE.CATNO ? handleCatnoSearch : handleMasterSearch}
+          onSubmit={
+            mode === MODE.CATNO ? handleCatnoSearch
+            : mode === MODE.DEADWAX ? handleDeadwaxSearch
+            : handleMasterSearch
+          }
           className="space-y-3"
         >
-          {mode === MODE.CATNO ? (
+          {mode === MODE.CATNO && (
             <>
               <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
                 Find the catalog number on the record label — e.g. <span style={{ color: 'var(--color-text)' }}>ILPS 9114</span> or <span style={{ color: 'var(--color-text)' }}>K 50595</span>
               </p>
-              <SearchField
-                placeholder="Catalog number"
-                value={query}
-                onChange={setQuery}
-                loading={loading}
-                submitLabel="Look up"
-              />
+              <SearchField placeholder="Catalog number" value={query} onChange={setQuery} loading={loading} submitLabel="Look up" />
             </>
-          ) : (
+          )}
+          {mode === MODE.TITLE && (
             <>
               <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
                 Search by artist and/or album title. You'll pick the exact pressing in the next step.
               </p>
-              <SearchField
-                placeholder="e.g. Radiohead OK Computer"
-                value={query}
-                onChange={setQuery}
-                loading={loading}
-                submitLabel="Search"
-              />
+              <SearchField placeholder="e.g. Radiohead OK Computer" value={query} onChange={setQuery} loading={loading} submitLabel="Search" />
+            </>
+          )}
+          {mode === MODE.DEADWAX && (
+            <>
+              <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
+                Enter the code etched in the dead wax (runout groove) — the area between the last track and the label. Usually looks like <span style={{ color: 'var(--color-text)' }}>ILPS 9114 A</span> or <span style={{ color: 'var(--color-text)' }}>BST-84371-A</span>
+              </p>
+              <SearchField placeholder="Dead wax / matrix code" value={query} onChange={setQuery} loading={loading} submitLabel="Look up" />
             </>
           )}
         </form>
@@ -247,7 +272,7 @@ export default function AddRecord() {
             title="Pick the pressing"
             onBack={() => {
               setError(null)
-              setStep(mode === MODE.CATNO ? STEP.INPUT : STEP.MASTERS)
+              setStep(mode === MODE.TITLE ? STEP.MASTERS : STEP.INPUT)
             }}
           />
           <p className="text-xs pb-1" style={{ color: 'var(--color-muted)' }}>

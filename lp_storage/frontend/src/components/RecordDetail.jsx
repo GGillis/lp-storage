@@ -1,9 +1,24 @@
 import { useEffect, useState } from 'react'
-import { X, Disc3 } from 'lucide-react'
+import { X, Disc3, Trash2 } from 'lucide-react'
 import TagEditor from './TagEditor'
 
-export default function RecordDetail({ record: initialRecord, onClose }) {
+export default function RecordDetail({ record: initialRecord, onClose, onDelete }) {
   const [record, setRecord] = useState(initialRecord)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  async function handleDelete() {
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/records/${record.id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Delete failed')
+      onDelete?.(record.id)
+      onClose()
+    } catch {
+      setDeleting(false)
+      setConfirmDelete(false)
+    }
+  }
 
   // Close on Escape
   useEffect(() => {
@@ -143,6 +158,42 @@ export default function RecordDetail({ record: initialRecord, onClose }) {
             <p className="text-xs" style={{ color: 'var(--color-text)' }}>{record.notes}</p>
           </div>
         )}
+
+        {/* Delete */}
+        <div
+          className="border-t px-4 py-3"
+          style={{ borderColor: 'var(--color-border)' }}
+        >
+          {!confirmDelete ? (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="flex items-center gap-2 text-xs transition-opacity hover:opacity-70"
+              style={{ color: 'var(--color-muted)' }}
+            >
+              <Trash2 size={13} />
+              Delete record
+            </button>
+          ) : (
+            <div className="flex items-center gap-3">
+              <p className="text-xs" style={{ color: 'var(--color-muted)' }}>Remove from collection?</p>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="px-3 py-1 rounded text-xs font-medium transition-opacity hover:opacity-80 disabled:opacity-40"
+                style={{ background: '#ef4444', color: '#fff' }}
+              >
+                {deleting ? 'Deleting…' : 'Delete'}
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="text-xs transition-opacity hover:opacity-70"
+                style={{ color: 'var(--color-muted)' }}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
 
         <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
       </div>

@@ -48,6 +48,20 @@ async def get_release(discogs_id: str):
     return release
 
 
+@router.get("/deadwax", response_model=list[DiscogsCandidate])
+async def search_by_deadwax(
+    q: str = Query(..., min_length=1, description="Dead wax / matrix code etched in the runout groove"),
+):
+    """Search vinyl releases by dead wax (matrix) code."""
+    try:
+        results = await discogs.search_by_deadwax(q)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Discogs search failed: {exc}")
+    if not results:
+        raise HTTPException(status_code=404, detail="No vinyl releases found for that matrix code")
+    return results
+
+
 @router.get("/barcode/{barcode}", response_model=list[DiscogsCandidate])
 async def lookup_barcode(barcode: str):
     # TODO: GET /database/search?barcode=<value>&type=release&format=Vinyl

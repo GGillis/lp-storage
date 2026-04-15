@@ -39,7 +39,11 @@ export default function Home() {
       </div>
 
       {selected && (
-        <RecordDetail record={selected} onClose={() => setSelected(null)} />
+        <RecordDetail
+          record={selected}
+          onClose={() => setSelected(null)}
+          onDelete={id => { setRecords(r => r.filter(x => x.id !== id)); setSelected(null) }}
+        />
       )}
     </>
   )

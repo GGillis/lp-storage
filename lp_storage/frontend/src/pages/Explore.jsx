@@ -148,7 +148,14 @@ export default function Explore() {
         </div>
 
         {detailRecord && (
-          <RecordDetail record={detailRecord} onClose={() => setDetailRecord(null)} />
+          <RecordDetail
+            record={detailRecord}
+            onClose={() => setDetailRecord(null)}
+            onDelete={id => {
+              setPlayedRecords(r => r.filter(x => x.id !== id))
+              setDetailRecord(null)
+            }}
+          />
         )}
       </div>
     )

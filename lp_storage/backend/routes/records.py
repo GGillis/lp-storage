@@ -66,6 +66,15 @@ def get_record(record_id: int, db: Session = Depends(get_db)):
 
 @router.post("/", response_model=RecordResponse, status_code=201)
 async def create_record(payload: RecordCreate, db: Session = Depends(get_db)):
+    if payload.discogs_id:
+        existing = db.query(Record).filter(Record.discogs_id == payload.discogs_id).first()
+        if existing:
+            added = existing.date_added.strftime("%-d %b %Y")
+            raise HTTPException(
+                status_code=409,
+                detail=f"Already in your collection (added {added})",
+            )
+
     data = payload.model_dump(exclude={"cover_url", "tags"})
 
     if payload.cover_url and not data.get("cover_path"):
