@@ -1,0 +1,14 @@
+services:
+  lp-storage:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - lp_data:/data
+    environment:
+      - DISCOGS_TOKEN=${DISCOGS_TOKEN}
+      - DISCOGS_USER_AGENT=${DISCOGS_USER_AGENT:-LPStorage/0.1}
+    restart: unless-stopped
+
+volumes:
+  lp_data:
