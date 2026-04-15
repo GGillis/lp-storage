@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.2] - 2026-04-15
+### Added
+- Stats page: total records, total collection length, total value at time of adding;
+  breakdown table by decade and by genre with proportional bar and value column
+- Home page sort toolbar: Random (default), Newest, Oldest, Artist A–Z, Year ↑/↓, Title A–Z
+- Home page genre filter pills drawn from the collection, toggle to narrow the grid
+- Sort parameter on GET /api/records/ (date_desc, date_asc, artist_asc, artist_desc,
+  title_asc, year_asc, year_desc)
+
 ## [1.0.1] - 2026-04-15
 ### Added
 - Dead wax / matrix code search (third tab in Add Record)

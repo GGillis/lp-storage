@@ -1,6 +1,6 @@
 name: LP Storage
 description: Vinyl record collection manager — browse, search, and explore your collection.
-version: "1.0.1"
+version: "1.0.2"
 slug: lp_storage
 init: false
 arch:

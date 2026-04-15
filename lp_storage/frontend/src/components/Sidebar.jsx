@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Disc3, Search, PlusCircle, Compass, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Disc3, Search, PlusCircle, Compass, BarChart2, ChevronLeft, ChevronRight } from 'lucide-react'
 
 const NAV_ITEMS = [
   { to: '/',        icon: Disc3,       label: 'Collection' },
   { to: '/explore', icon: Compass,     label: 'Explore'    },
   { to: '/search',  icon: Search,      label: 'Search'     },
+  { to: '/stats',   icon: BarChart2,   label: 'Stats'      },
   { to: '/add',     icon: PlusCircle,  label: 'Add Record' },
 ]
 

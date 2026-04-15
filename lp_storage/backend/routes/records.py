@@ -1,8 +1,9 @@
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Literal
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import asc, desc
 from database import get_db
 from models import Record, RecordTag
 from schemas import RecordCreate, RecordResponse, TagCreate
@@ -18,6 +19,17 @@ def _get_or_404(record_id: int, db: Session) -> Record:
     return record
 
 
+_SORT_MAP = {
+    "date_desc":   desc(Record.date_added),
+    "date_asc":    asc(Record.date_added),
+    "artist_asc":  asc(Record.artist),
+    "artist_desc": desc(Record.artist),
+    "title_asc":   asc(Record.title),
+    "year_asc":    asc(Record.year),
+    "year_desc":   desc(Record.year),
+}
+
+
 @router.get("/", response_model=list[RecordResponse])
 def list_records(
     artist: Optional[str] = None,
@@ -28,6 +40,7 @@ def list_records(
     track: Optional[str] = None,
     year_from: Optional[int] = None,
     year_to: Optional[int] = None,
+    sort: Optional[str] = "date_desc",
     db: Session = Depends(get_db),
 ):
     query = db.query(Record)
@@ -44,13 +57,13 @@ def list_records(
             Record.tag_objects.any(RecordTag.tag == tag.strip().lower())
         )
     if track:
-        # Search within the tracklist JSON blob for matching track titles
         query = query.filter(Record.tracklist.ilike(f'%{track}%'))
     if year_from is not None:
         query = query.filter(Record.year >= year_from)
     if year_to is not None:
         query = query.filter(Record.year <= year_to)
-    return query.order_by(Record.date_added.desc()).all()
+    order = _SORT_MAP.get(sort, desc(Record.date_added))
+    return query.order_by(order).all()
 
 
 @router.get("/random", response_model=list[RecordResponse])

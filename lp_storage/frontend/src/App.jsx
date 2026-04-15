@@ -5,6 +5,7 @@ import Home from './pages/Home'
 import Search from './pages/Search'
 import AddRecord from './pages/AddRecord'
 import Explore from './pages/Explore'
+import Stats from './pages/Stats'
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -50,6 +51,7 @@ export default function App() {
             <Route path="/search" element={<Search />} />
             <Route path="/add" element={<AddRecord />} />
             <Route path="/explore" element={<Explore />} />
+            <Route path="/stats" element={<Stats />} />
           </Routes>
         </main>
       </div>

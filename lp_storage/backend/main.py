@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from database import init_db
-from routes import records, lookup, explore
+from routes import records, lookup, explore, stats
 
 
 @asynccontextmanager
@@ -29,6 +29,7 @@ app.add_middleware(
 app.include_router(records.router, prefix="/api/records")
 app.include_router(lookup.router, prefix="/api/lookup")
 app.include_router(explore.router, prefix="/api/explore")
+app.include_router(stats.router, prefix="/api/stats")
 
 
 @app.get("/health")
