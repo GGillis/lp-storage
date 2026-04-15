@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from database import init_db
-from routes import records, lookup, explore, stats
+from routes import records, lookup, explore, stats, games, games_lookup
 
 
 @asynccontextmanager
@@ -30,6 +30,8 @@ app.include_router(records.router, prefix="/api/records")
 app.include_router(lookup.router, prefix="/api/lookup")
 app.include_router(explore.router, prefix="/api/explore")
 app.include_router(stats.router, prefix="/api/stats")
+app.include_router(games.router, prefix="/api/games")
+app.include_router(games_lookup.router, prefix="/api/games/lookup")
 
 
 @app.get("/health")

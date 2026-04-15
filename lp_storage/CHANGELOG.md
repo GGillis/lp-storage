@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.3] - 2026-04-15
+### Added
+- Board games collection alongside vinyl records, toggled from the sidebar
+- Games data via BoardGameGeek XML API 2 (no account needed): title search, full metadata, cover art
+- Add game by: BGG title search, barcode/UPC scan, or bulk import from a BGG username
+- Duplicate detection on BGG ID when adding games
+- Games Home page with sort toolbar (Random, Newest, Oldest, Title A–Z, Year ↑/↓, Top rated) and category filter pills
+- Games Search page with filters: title, designer, category, mechanic, tag, player count, year range
+- Games Explore page: "I feel like playing…" keyword flow (categories, mechanics, tags, decades, player count)
+- Games Stats page: totals (game count, total playtime, average BGG rating) with breakdowns by decade, category, and mechanic
+- Tags on games (same TagEditor component, wired to /api/games API)
+- Sidebar Records ↔ Games switcher, persisted to localStorage
+
 ## [1.0.2] - 2026-04-15
 ### Added
 - Stats page: total records, total collection length, total value at time of adding;

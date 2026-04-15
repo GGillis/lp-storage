@@ -13,7 +13,7 @@ class Base(DeclarativeBase):
 
 
 def init_db() -> None:
-    from models import Record  # noqa: F401 — registers model with Base
+    from models import Record, Game  # noqa: F401 — registers models with Base
     Base.metadata.create_all(bind=engine)
 
 

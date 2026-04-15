@@ -6,9 +6,16 @@ import Search from './pages/Search'
 import AddRecord from './pages/AddRecord'
 import Explore from './pages/Explore'
 import Stats from './pages/Stats'
+import GamesHome from './pages/games/Home'
+import GamesSearch from './pages/games/Search'
+import AddGame from './pages/games/AddGame'
+import GamesExplore from './pages/games/Explore'
+import GamesStats from './pages/games/Stats'
+import { useCollection } from './context/CollectionContext'
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { collection } = useCollection()
 
   return (
     <div className="flex h-full w-full overflow-hidden" style={{ background: 'var(--color-bg)' }}>
@@ -41,7 +48,7 @@ export default function App() {
             </svg>
           </button>
           <span className="text-sm font-medium tracking-widest uppercase" style={{ color: 'var(--color-accent)' }}>
-            LP Storage
+            {collection === 'games' ? 'Games' : 'LP Storage'}
           </span>
         </header>
 
@@ -52,6 +59,11 @@ export default function App() {
             <Route path="/add" element={<AddRecord />} />
             <Route path="/explore" element={<Explore />} />
             <Route path="/stats" element={<Stats />} />
+            <Route path="/games" element={<GamesHome />} />
+            <Route path="/games/search" element={<GamesSearch />} />
+            <Route path="/games/add" element={<AddGame />} />
+            <Route path="/games/explore" element={<GamesExplore />} />
+            <Route path="/games/stats" element={<GamesStats />} />
           </Routes>
         </main>
       </div>

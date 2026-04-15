@@ -8,7 +8,7 @@ import { X, Plus } from 'lucide-react'
  *   - controlled (recordId provided): persists changes immediately via the API
  *   - uncontrolled (no recordId): calls onChange(newTagsArray) for parent to handle
  */
-export default function TagEditor({ recordId, initialTags = [], onChange }) {
+export default function TagEditor({ recordId, apiBase = '/api/records', initialTags = [], onChange }) {
   const [tags, setTags] = useState(initialTags)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -21,7 +21,7 @@ export default function TagEditor({ recordId, initialTags = [], onChange }) {
     if (recordId) {
       setLoading(true)
       try {
-        const res = await fetch(`/api/records/${recordId}/tags`, {
+        const res = await fetch(`${apiBase}/${recordId}/tags`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ tag }),
@@ -44,7 +44,7 @@ export default function TagEditor({ recordId, initialTags = [], onChange }) {
     if (recordId) {
       setLoading(true)
       try {
-        const res = await fetch(`/api/records/${recordId}/tags/${encodeURIComponent(tag)}`, {
+        const res = await fetch(`${apiBase}/${recordId}/tags/${encodeURIComponent(tag)}`, {
           method: 'DELETE',
         })
         if (!res.ok) return
