@@ -15,7 +15,15 @@ BASE_URL = "https://boardgamegeek.com/xmlapi2"
 COVERS_DIR = os.getenv(
     "COVERS_DIR", os.path.join(os.path.dirname(__file__), "..", "..", "covers")
 )
-_HEADERS = {"User-Agent": "LPStorage/1.0 (https://github.com/gilliskruisselbrink/lp-storage)"}
+
+
+def _headers() -> dict:
+    """Build request headers, including the BGG Bearer token if configured."""
+    h = {"User-Agent": "LPStorage/1.0 (https://github.com/gilliskruisselbrink/lp-storage)"}
+    token = os.getenv("BGG_TOKEN", "").strip()
+    if token:
+        h["Authorization"] = f"Bearer {token}"
+    return h
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -57,7 +65,7 @@ def _links(item, link_type: str) -> Optional[str]:
 
 async def search_games(query: str, limit: int = 10) -> list[dict]:
     """Full-text search for board games. Returns lightweight candidates."""
-    async with httpx.AsyncClient(headers=_HEADERS) as client:
+    async with httpx.AsyncClient(headers=_headers()) as client:
         resp = await client.get(
             f"{BASE_URL}/search",
             params={"query": query, "type": "boardgame"},
@@ -88,7 +96,7 @@ async def search_games(query: str, limit: int = 10) -> list[dict]:
 
 async def get_game(bgg_id: str) -> Optional[dict]:
     """Fetch full metadata for a single game by BGG ID."""
-    async with httpx.AsyncClient(headers=_HEADERS) as client:
+    async with httpx.AsyncClient(headers=_headers()) as client:
         resp = await client.get(
             f"{BASE_URL}/thing",
             params={"id": bgg_id, "stats": 1},
@@ -145,7 +153,7 @@ async def get_user_collection(username: str) -> list[dict]:
     Fetch all owned games from a BGG user's collection.
     BGG may return 202 (still queuing) — we retry up to 5 times.
     """
-    async with httpx.AsyncClient(headers=_HEADERS) as client:
+    async with httpx.AsyncClient(headers=_headers()) as client:
         for attempt in range(6):
             resp = await client.get(
                 f"{BASE_URL}/collection",
@@ -236,7 +244,7 @@ async def download_cover(url: str, bgg_id: str) -> Optional[str]:
     """Download cover image to COVERS_DIR/game_{bgg_id}.jpg."""
     dest = os.path.join(COVERS_DIR, f"game_{bgg_id}.jpg")
     try:
-        async with httpx.AsyncClient(headers=_HEADERS, follow_redirects=True) as client:
+        async with httpx.AsyncClient(headers=_headers(), follow_redirects=True) as client:
             resp = await client.get(url, timeout=15.0)
             resp.raise_for_status()
         os.makedirs(COVERS_DIR, exist_ok=True)

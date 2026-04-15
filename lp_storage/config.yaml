@@ -1,6 +1,6 @@
 name: LP Storage
 description: Vinyl record and board game collection manager — browse, search, and explore your collection.
-version: "1.0.4"
+version: "1.0.5"
 slug: lp_storage
 init: false
 arch:
@@ -19,7 +19,9 @@ map:
 options:
   discogs_token: ""
   discogs_user_agent: "LPStorage/0.1"
+  bgg_token: ""
 
 schema:
   discogs_token: str
   discogs_user_agent: str
+  bgg_token: str

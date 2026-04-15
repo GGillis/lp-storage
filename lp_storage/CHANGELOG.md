@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.5] - 2026-04-15
+### Fixed
+- BGG API now requires a Bearer token (mandatory as of July 2025); added `bgg_token`
+  add-on option — set it in HA app settings after registering at boardgamegeek.com/using_the_xml_api
+- Token is passed via `Authorization: Bearer` header on all BGG requests
+- Token is optional; requests still work if BGG ever lifts the requirement
+
 ## [1.0.4] - 2026-04-15
 ### Fixed
 - BGG API 401 errors: all requests now send a proper User-Agent header (BGG blocks the default httpx UA)
