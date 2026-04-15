@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.4] - 2026-04-15
+### Fixed
+- BGG API 401 errors: all requests now send a proper User-Agent header (BGG blocks the default httpx UA)
+- BGG collection import with a private profile now shows a clear error message with instructions to make the collection public
+
 ## [1.0.3] - 2026-04-15
 ### Added
 - Board games collection alongside vinyl records, toggled from the sidebar
