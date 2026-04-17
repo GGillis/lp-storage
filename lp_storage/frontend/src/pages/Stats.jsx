@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Disc3, Clock, DollarSign } from 'lucide-react'
+import { Disc3, Clock, Euro } from 'lucide-react'
 
 const VIEWS = [
   { key: 'by_decade', label: 'By decade' },
@@ -47,7 +47,7 @@ export default function Stats() {
           value={totals.duration || '—'}
         />
         <StatCard
-          icon={<DollarSign size={18} />}
+          icon={<Euro size={18} />}
           label="Collection value"
           value={
             totals.value > 0

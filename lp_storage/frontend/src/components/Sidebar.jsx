@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { Disc3, Search, PlusCircle, Compass, BarChart2, ChevronLeft, ChevronRight, Gamepad2 } from 'lucide-react'
 import { useCollection } from '../context/CollectionContext'
 
@@ -54,9 +54,26 @@ export default function Sidebar({ isOpen, onClose }) {
   )
 }
 
+function equivalentPath(currentPath, targetCollection) {
+  if (targetCollection === 'games') {
+    if (currentPath === '/') return '/games'
+    return `/games${currentPath}` // /explore → /games/explore, /search → /games/search, etc.
+  } else {
+    if (currentPath === '/games') return '/'
+    return currentPath.replace(/^\/games/, '') || '/' // /games/explore → /explore
+  }
+}
+
 function SidebarContent({ collapsed, onToggleCollapse, onClose }) {
   const { collection, setCollection } = useCollection()
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
   const navItems = collection === 'games' ? GAMES_NAV : RECORDS_NAV
+
+  function switchTo(target) {
+    setCollection(target)
+    navigate(equivalentPath(pathname, target))
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -87,7 +104,7 @@ function SidebarContent({ collapsed, onToggleCollapse, onClose }) {
             style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}
           >
             <button
-              onClick={() => setCollection('records')}
+              onClick={() => switchTo('records')}
               className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded text-xs font-medium transition-colors"
               style={{
                 background: collection === 'records' ? 'var(--color-accent)' : 'transparent',
@@ -97,7 +114,7 @@ function SidebarContent({ collapsed, onToggleCollapse, onClose }) {
               <Disc3 size={12} /> Records
             </button>
             <button
-              onClick={() => setCollection('games')}
+              onClick={() => switchTo('games')}
               className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded text-xs font-medium transition-colors"
               style={{
                 background: collection === 'games' ? 'var(--color-accent)' : 'transparent',
@@ -113,7 +130,7 @@ function SidebarContent({ collapsed, onToggleCollapse, onClose }) {
       {collapsed && (
         <div className="px-2 pt-2 flex flex-col gap-1">
           <button
-            onClick={() => setCollection('records')}
+            onClick={() => switchTo('records')}
             className="flex items-center justify-center p-2 rounded-md transition-colors"
             style={{
               background: collection === 'records' ? 'var(--color-accent)' : 'transparent',
@@ -124,7 +141,7 @@ function SidebarContent({ collapsed, onToggleCollapse, onClose }) {
             <Disc3 size={16} />
           </button>
           <button
-            onClick={() => setCollection('games')}
+            onClick={() => switchTo('games')}
             className="flex items-center justify-center p-2 rounded-md transition-colors"
             style={{
               background: collection === 'games' ? 'var(--color-accent)' : 'transparent',

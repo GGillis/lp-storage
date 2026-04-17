@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Shuffle, RotateCcw, Disc3 } from 'lucide-react'
 import RecordDetail from '../components/RecordDetail'
 
@@ -34,17 +34,36 @@ export default function Explore() {
     fetchSuggestions(keywords)
   }, [keywords]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Re-fetch related whenever the current record changes
-  useEffect(() => {
-    if (!currentRecord) return
+  const fetchRelated = useCallback((id, exclude = [], preferExclude = []) => {
     setRelatedLoading(true)
-    setRelated(null)
-    fetch(`/api/explore/related/${currentRecord.id}`)
+    const params = new URLSearchParams()
+    exclude.forEach(x => params.append('exclude', x))
+    preferExclude.forEach(x => params.append('prefer_exclude', x))
+    fetch(`/api/explore/related/${id}?${params}`)
       .then(r => r.json())
       .then(setRelated)
       .catch(() => {})
       .finally(() => setRelatedLoading(false))
+  }, [])
+
+  const historyIds = historyRecords.map(r => r.id)
+
+  // Re-fetch related whenever the current record changes
+  useEffect(() => {
+    if (!currentRecord) return
+    setRelated(null)
+    fetchRelated(currentRecord.id, [], historyIds)
   }, [currentRecord?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function shuffleSimilar() {
+    if (!currentRecord || !related) return
+    fetchRelated(currentRecord.id, related.similar.map(r => r.id), historyIds)
+  }
+
+  function shuffleDifferent() {
+    if (!currentRecord || !related) return
+    fetchRelated(currentRecord.id, related.different.map(r => r.id), historyIds)
+  }
 
   // All keywords flat (decades first, then genres, styles, tags)
   const allFlat = [
@@ -107,13 +126,15 @@ export default function Explore() {
         {/* Current record — most recently picked, prominent at top */}
         <PickedCard record={currentRecord} onOpenDetail={setDetailRecord} />
 
-        {/* History trail — older picks, compact, newest-first */}
+        {/* History trail — older picks, small square grid */}
         {historyRecords.length > 0 && (
-          <div className="space-y-1.5">
-            <p className="text-xs" style={{ color: 'var(--color-muted)' }}>Previously</p>
-            {historyRecords.map((r, i) => (
-              <HistoryCard key={`${r.id}-${i}`} record={r} onOpenDetail={setDetailRecord} />
-            ))}
+          <div>
+            <p className="text-xs mb-2" style={{ color: 'var(--color-muted)' }}>Previously</p>
+            <div className="grid grid-cols-6 gap-2">
+              {historyRecords.map((r, i) => (
+                <RecordSquare key={`${r.id}-${i}`} record={r} onClick={() => setDetailRecord(r)} />
+              ))}
+            </div>
           </div>
         )}
 
@@ -127,12 +148,14 @@ export default function Explore() {
             records={related?.similar}
             loading={relatedLoading}
             onPick={pickRecord}
+            onShuffle={shuffleSimilar}
           />
           <RelatedColumn
             title="Contrast"
             records={related?.different}
             loading={relatedLoading}
             onPick={pickRecord}
+            onShuffle={shuffleDifferent}
           />
           <div className="flex flex-col gap-3">
             <ColumnHeader>Explore again</ColumnHeader>
@@ -380,68 +403,29 @@ function PickedCard({ record, onOpenDetail }) {
   )
 }
 
-// Compact card for previously played records
-function HistoryCard({ record, onOpenDetail }) {
-  return (
-    <button
-      onClick={() => onOpenDetail(record)}
-      className="w-full flex items-center gap-3 rounded-md px-2.5 py-2 text-left transition-opacity hover:opacity-80"
-      style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
-    >
-      <div
-        className="w-8 h-8 rounded-sm shrink-0 overflow-hidden"
-        style={{ background: 'var(--color-border)' }}
-      >
-        {record.cover_path ? (
-          <img src={`/api/records/${record.id}/cover`} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Disc3 size={12} style={{ color: 'var(--color-muted)' }} />
-          </div>
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs truncate" style={{ color: 'var(--color-text)' }}>{record.title}</p>
-        <p className="text-xs truncate" style={{ color: 'var(--color-muted)' }}>{record.artist}</p>
-      </div>
-    </button>
-  )
-}
-
 // Column in phase 3 — clicking a record picks it (adds to top of played list)
-function RelatedColumn({ title, records, loading, onPick }) {
+function RelatedColumn({ title, records, loading, onPick, onShuffle }) {
   return (
     <div className="flex flex-col gap-3">
-      <ColumnHeader>{title}</ColumnHeader>
+      <div className="flex items-center justify-between">
+        <ColumnHeader>{title}</ColumnHeader>
+        {!loading && records?.length > 0 && (
+          <button
+            onClick={onShuffle}
+            className="flex items-center gap-1 text-xs transition-opacity hover:opacity-70"
+            style={{ color: 'var(--color-muted)' }}
+          >
+            <Shuffle size={11} />
+          </button>
+        )}
+      </div>
       {loading ? (
-        Array.from({ length: 2 }).map((_, i) => (
-          <div key={i} className="h-16 rounded-md animate-pulse" style={{ background: 'var(--color-card)' }} />
+        Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="aspect-square rounded-sm animate-pulse" style={{ background: 'var(--color-card)' }} />
         ))
       ) : records?.length > 0 ? (
         records.map(r => (
-          <button
-            key={r.id}
-            onClick={() => onPick(r)}
-            className="flex items-center gap-2 rounded-md p-2 text-left transition-opacity hover:opacity-80"
-            style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}
-          >
-            <div
-              className="w-10 h-10 rounded-sm shrink-0 overflow-hidden"
-              style={{ background: 'var(--color-border)' }}
-            >
-              {r.cover_path ? (
-                <img src={`/api/records/${r.id}/cover`} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Disc3 size={14} style={{ color: 'var(--color-muted)' }} />
-                </div>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium truncate" style={{ color: 'var(--color-text)' }}>{r.title}</p>
-              <p className="text-xs truncate" style={{ color: 'var(--color-muted)' }}>{r.artist}</p>
-            </div>
-          </button>
+          <RecordSquare key={r.id} record={r} onClick={() => onPick(r)} />
         ))
       ) : (
         <p className="text-xs" style={{ color: 'var(--color-muted)' }}>None found</p>

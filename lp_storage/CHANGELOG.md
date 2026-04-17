@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.0.6] - 2026-04-17
+### Fixed
+- Explore similar/contrast results were always empty: SQLAlchemy ORM objects were not
+  serialized before being placed in `RelatedResponse`, causing FastAPI to return empty dicts
+- Stats breakdown table length column was always "—": `_build_breakdown` did not accumulate
+  duration per bucket; added `duration_fn` parameter wired to `_record_seconds_estimated`
+
+### Added
+- Explore: 3 similar and 3 contrast records (up from 2); shuffle button on each column
+  re-fetches excluding currently shown records
+- Explore: previously played records are soft-excluded from similar/contrast results
+  (included as fallback if fewer than 3 candidates remain without them)
+- Explore: all record cards (similar, contrast, history) now use the same square cover
+  style with hover title/artist overlay as the Phase 2 suggestion grid
+- Stats: records without tracklist durations get a 16 min/side estimate (sides inferred
+  from tracklist position labels A/B/C/D, then format string e.g. 2xLP, defaulting to 2)
+- Stats: collection value card now shows a Euro sign instead of a dollar sign
+- Sidebar: switching between Records and Games navigates to the equivalent page
+  (e.g. /search ↔ /games/search) instead of staying on the current URL
+
 ## [1.0.5] - 2026-04-15
 ### Fixed
 - BGG API now requires a Bearer token (mandatory as of July 2025); added `bgg_token`

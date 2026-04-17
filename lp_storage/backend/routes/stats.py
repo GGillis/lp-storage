@@ -3,6 +3,7 @@ Collection statistics for records and games.
 """
 
 import json
+import re
 from collections import defaultdict
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -26,12 +27,13 @@ def _format_duration(seconds: int) -> str:
     return f"{m} min"
 
 
-def _build_breakdown(items, key_fn, value_fn=None) -> list[dict]:
+def _build_breakdown(items, key_fn, value_fn=None, duration_fn=None) -> list[dict]:
     """
     Group items by key_fn(item) → str.
     value_fn(item) → float for the value column (optional).
+    duration_fn(item) → int seconds for the duration column (optional).
     """
-    buckets: dict[str, dict] = defaultdict(lambda: {"count": 0, "value": 0.0})
+    buckets: dict[str, dict] = defaultdict(lambda: {"count": 0, "value": 0.0, "duration_seconds": 0})
     for item in items:
         k = key_fn(item)
         if not k:
@@ -41,14 +43,28 @@ def _build_breakdown(items, key_fn, value_fn=None) -> list[dict]:
             v = value_fn(item)
             if v:
                 buckets[k]["value"] += v
+        if duration_fn:
+            buckets[k]["duration_seconds"] += duration_fn(item)
     return sorted(
-        [{"label": k, "records": v["count"], "value": round(v["value"], 2)} for k, v in buckets.items()],
+        [
+            {
+                "label": k,
+                "records": v["count"],
+                "value": round(v["value"], 2),
+                "duration_seconds": v["duration_seconds"],
+                "duration": _format_duration(v["duration_seconds"]) if v["duration_seconds"] else None,
+            }
+            for k, v in buckets.items()
+        ],
         key=lambda x: x["records"],
         reverse=True,
     )
 
 
 # ── Record-specific ───────────────────────────────────────────────────────────
+
+_SECONDS_PER_SIDE = 16 * 60  # 960 s
+
 
 def _parse_duration(s: str) -> int:
     try:
@@ -70,6 +86,35 @@ def _record_seconds(r: Record) -> int:
     except Exception:
         return 0
     return sum(_parse_duration(t.get("duration", "")) for t in tracks)
+
+
+def _estimate_sides(r: Record) -> int:
+    """Count sides from tracklist position labels (A1, B2 … → 2 sides).
+    Falls back to parsing the format string (2xLP → 4 sides).
+    Defaults to 2 (single LP) when neither is available."""
+    if r.tracklist:
+        try:
+            tracks = json.loads(r.tracklist)
+            letters = {
+                t["position"][0].upper()
+                for t in tracks
+                if t.get("position") and t["position"][0].isalpha()
+            }
+            if letters:
+                return len(letters)
+        except Exception:
+            pass
+    if r.format:
+        m = re.search(r"(\d+)\s*x", r.format.lower())
+        if m:
+            return int(m.group(1)) * 2
+    return 2
+
+
+def _record_seconds_estimated(r: Record) -> int:
+    """Actual tracklist duration, or 16 min/side estimate when unknown."""
+    actual = _record_seconds(r)
+    return actual if actual > 0 else _estimate_sides(r) * _SECONDS_PER_SIDE
 
 
 # ── Game-specific ─────────────────────────────────────────────────────────────
@@ -120,7 +165,7 @@ def get_stats(
     else:
         records = db.query(Record).all()
         total = len(records)
-        total_seconds = sum(_record_seconds(r) for r in records)
+        total_seconds = sum(_record_seconds_estimated(r) for r in records)
         total_value = sum(float(r.lowest_price) for r in records if r.lowest_price)
 
         currency_counts: dict[str, int] = defaultdict(int)
@@ -141,10 +186,12 @@ def get_stats(
                 records,
                 lambda r: _decade(r.year) if r.year else None,
                 lambda r: float(r.lowest_price) if r.lowest_price else None,
+                _record_seconds_estimated,
             ),
             "by_genre": _build_breakdown(
                 records,
                 lambda r: r.genre.strip() if r.genre else None,
                 lambda r: float(r.lowest_price) if r.lowest_price else None,
+                _record_seconds_estimated,
             ),
         }

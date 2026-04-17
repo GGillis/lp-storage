@@ -78,10 +78,8 @@ class SuggestionsResponse(BaseModel):
 
 
 class RelatedResponse(BaseModel):
-    similar: list = []
-    different: list = []
-
-    model_config = {"from_attributes": True}
+    similar: list[dict] = []
+    different: list[dict] = []
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -171,6 +169,8 @@ def get_suggestions(
 def get_related(
     item_id: int,
     collection: str = Query("records", pattern="^(records|games)$"),
+    exclude: list[int] = Query(default=[]),
+    prefer_exclude: list[int] = Query(default=[]),
     db: Session = Depends(get_db),
 ):
     if collection == "games":
@@ -186,8 +186,11 @@ def get_related(
     if not target:
         raise HTTPException(status_code=404, detail="Item not found")
 
+    hard_exclude = set(exclude)
+    soft_exclude = set(prefer_exclude) - hard_exclude
     target_kws = kw_fn(target)
-    others = [x for x in all_items if x.id != item_id]
+
+    others = [x for x in all_items if x.id != item_id and x.id not in hard_exclude]
     if not others:
         return RelatedResponse()
 
@@ -196,8 +199,20 @@ def get_related(
         key=lambda p: p[1],
         reverse=True,
     )
-    similar = [x for x, _ in scored[:2]]
-    similar_ids = {x.id for x in similar}
-    different = [x for x, _ in reversed(scored) if x.id not in similar_ids][:2]
 
-    return RelatedResponse(similar=similar, different=different)
+    # Similar: prefer to exclude history, fall back to full pool if < 3 remain
+    all_similar = [x for x, _ in scored]
+    similar_filtered = [x for x in all_similar if x.id not in soft_exclude]
+    similar = similar_filtered[:3] if len(similar_filtered) >= 3 else all_similar[:3]
+
+    # Contrast: same soft-exclude logic, also exclude the similar picks
+    similar_ids = {x.id for x in similar}
+    all_different = [x for x, _ in reversed(scored) if x.id not in similar_ids]
+    different_filtered = [x for x in all_different if x.id not in soft_exclude]
+    different = different_filtered[:3] if len(different_filtered) >= 3 else all_different[:3]
+
+    serialize = response_model.model_validate
+    return RelatedResponse(
+        similar=[serialize(x).model_dump() for x in similar],
+        different=[serialize(x).model_dump() for x in different],
+    )

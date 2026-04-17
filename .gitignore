@@ -209,6 +209,9 @@ __marimo__/
 .DS_Store
 .claude
 
+# Local dev scripts / secrets (not committed)
+local/
+
 # Project-specific
 records.db
 covers/*
