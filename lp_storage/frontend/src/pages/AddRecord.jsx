@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Search, Plus, Check, Hash, Disc3, Fingerprint } from 'lucide-react'
+import { Search, Plus, Check, Hash, Disc3, Fingerprint, ScanBarcode } from 'lucide-react'
 import TagEditor from '../components/TagEditor'
 
-const MODE = { CATNO: 'catno', TITLE: 'title', DEADWAX: 'deadwax' }
+const MODE = { CATNO: 'catno', TITLE: 'title', DEADWAX: 'deadwax', BARCODE: 'barcode' }
 const STEP = { INPUT: 'input', MASTERS: 'masters', PRESSINGS: 'pressings', CONFIRM: 'confirm', DONE: 'done' }
 
 export default function AddRecord() {
@@ -47,6 +47,27 @@ export default function AddRecord() {
       if (!res.ok) {
         const err = await res.json()
         throw new Error(err.detail || 'Search failed')
+      }
+      const data = await res.json()
+      setPressings(data)
+      setStep(STEP.PRESSINGS)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleBarcodeSearch(e) {
+    e.preventDefault()
+    if (!query.trim()) return
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/lookup/barcode/${encodeURIComponent(query.trim())}`)
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || 'Barcode lookup failed')
       }
       const data = await res.json()
       setPressings(data)
@@ -189,6 +210,9 @@ export default function AddRecord() {
           <TabButton active={mode === MODE.TITLE} onClick={() => switchMode(MODE.TITLE)} icon={<Search size={14} />}>
             Artist / title
           </TabButton>
+          <TabButton active={mode === MODE.BARCODE} onClick={() => switchMode(MODE.BARCODE)} icon={<ScanBarcode size={14} />}>
+            Barcode
+          </TabButton>
           <TabButton active={mode === MODE.DEADWAX} onClick={() => switchMode(MODE.DEADWAX)} icon={<Fingerprint size={14} />}>
             Dead wax
           </TabButton>
@@ -199,8 +223,9 @@ export default function AddRecord() {
       {step === STEP.INPUT && (
         <form
           onSubmit={
-            mode === MODE.CATNO ? handleCatnoSearch
-            : mode === MODE.DEADWAX ? handleDeadwaxSearch
+            mode === MODE.CATNO    ? handleCatnoSearch
+            : mode === MODE.DEADWAX  ? handleDeadwaxSearch
+            : mode === MODE.BARCODE  ? handleBarcodeSearch
             : handleMasterSearch
           }
           className="space-y-3"
@@ -219,6 +244,14 @@ export default function AddRecord() {
                 Search by artist and/or album title. You'll pick the exact pressing in the next step.
               </p>
               <SearchField placeholder="e.g. Radiohead OK Computer" value={query} onChange={setQuery} loading={loading} submitLabel="Search" />
+            </>
+          )}
+          {mode === MODE.BARCODE && (
+            <>
+              <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
+                Enter the barcode (UPC/EAN) printed on the record sleeve or inner sleeve.
+              </p>
+              <SearchField placeholder="Barcode number" value={query} onChange={setQuery} loading={loading} submitLabel="Look up" />
             </>
           )}
           {mode === MODE.DEADWAX && (

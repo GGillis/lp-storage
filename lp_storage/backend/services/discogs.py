@@ -92,6 +92,19 @@ def _parse_master_result(item: dict) -> MasterCandidate:
     )
 
 
+async def search_by_barcode(barcode: str) -> list[DiscogsCandidate]:
+    """Search by UPC/EAN barcode. Discogs indexes barcodes on releases."""
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            f"{BASE_URL}/database/search",
+            params={"barcode": barcode, "type": "release", "format": "Vinyl", "per_page": 10, "page": 1},
+            headers=_headers(),
+            timeout=10.0,
+        )
+        resp.raise_for_status()
+    return [_parse_search_result(r) for r in resp.json().get("results", [])]
+
+
 async def search_by_deadwax(matrix: str) -> list[DiscogsCandidate]:
     """Search by dead wax / matrix code etched in the runout groove."""
     async with httpx.AsyncClient() as client:

@@ -141,8 +141,8 @@ export default function Explore() {
         {/* Divider */}
         <div style={{ borderTop: '1px solid var(--color-border)' }} />
 
-        {/* Three columns */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Two columns (Similar + Contrast) — side by side on all screen sizes */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <RelatedColumn
             title="Similar"
             records={related?.similar}
@@ -157,7 +157,8 @@ export default function Explore() {
             onPick={pickRecord}
             onShuffle={shuffleDifferent}
           />
-          <div className="flex flex-col gap-3">
+          {/* Start over — third column on sm+, hidden on mobile */}
+          <div className="hidden sm:flex flex-col gap-3">
             <ColumnHeader>Explore again</ColumnHeader>
             <button
               onClick={reset}
@@ -169,6 +170,16 @@ export default function Explore() {
             </button>
           </div>
         </div>
+
+        {/* Start over — below the columns on mobile only */}
+        <button
+          onClick={reset}
+          className="flex sm:hidden items-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium w-full transition-opacity hover:opacity-80"
+          style={{ background: 'var(--color-card)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}
+        >
+          <RotateCcw size={14} />
+          Start over
+        </button>
 
         {detailRecord && (
           <RecordDetail

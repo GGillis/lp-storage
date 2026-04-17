@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.7] - 2026-04-17
+### Added
+- Add Record: barcode tab (UPC/EAN) — searches Discogs directly by barcode,
+  drops straight into the pressing picker
+- Explore: Similar and Contrast columns are side by side on mobile (scaled-down
+  square covers); Start over button moves below the columns on small screens
+
 ## [1.0.6] - 2026-04-17
 ### Fixed
 - Explore similar/contrast results were always empty: SQLAlchemy ORM objects were not

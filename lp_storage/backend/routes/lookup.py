@@ -64,5 +64,11 @@ async def search_by_deadwax(
 
 @router.get("/barcode/{barcode}", response_model=list[DiscogsCandidate])
 async def lookup_barcode(barcode: str):
-    # TODO: GET /database/search?barcode=<value>&type=release&format=Vinyl
-    raise HTTPException(status_code=501, detail="Barcode lookup not yet implemented")
+    """Search vinyl releases by UPC/EAN barcode."""
+    try:
+        results = await discogs.search_by_barcode(barcode)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Discogs search failed: {exc}")
+    if not results:
+        raise HTTPException(status_code=404, detail="No vinyl releases found for that barcode — try searching by title")
+    return results
