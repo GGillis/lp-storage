@@ -123,11 +123,9 @@ export default function Home() {
         ) : records.length === 0 ? (
           <EmptyState hasFilter={!!genreFilter} />
         ) : (
-          <div className="p-3 sm:p-4 columns-3 sm:columns-4 md:columns-5 lg:columns-6 xl:columns-7 gap-2 sm:gap-3">
+          <div className="p-3 sm:p-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 sm:gap-3">
             {records.map(record => (
-              <div key={record.id} className="mb-2 sm:mb-3 break-inside-avoid">
-                <CoverCard record={record} onClick={setSelected} />
-              </div>
+              <CoverCard key={record.id} record={record} onClick={setSelected} />
             ))}
           </div>
         )}
@@ -146,11 +144,11 @@ export default function Home() {
 
 function LoadingGrid() {
   return (
-    <div className="p-3 sm:p-4 columns-3 sm:columns-4 md:columns-5 lg:columns-6 xl:columns-7 gap-2 sm:gap-3">
+    <div className="p-3 sm:p-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 sm:gap-3">
       {Array.from({ length: 24 }).map((_, i) => (
         <div
           key={i}
-          className="mb-2 sm:mb-3 aspect-square w-full rounded-sm animate-pulse"
+          className="aspect-square w-full rounded-sm animate-pulse"
           style={{ background: 'var(--color-card)' }}
         />
       ))}

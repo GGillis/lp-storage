@@ -6,7 +6,9 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from database import init_db
 from routes import records, lookup, explore, stats, games, games_lookup, ai_tags
 
@@ -41,8 +43,18 @@ def health():
 
 
 # Serve the built React app in production.
-# html=True makes Starlette return index.html for any unmatched path,
-# enabling client-side routing. API routes above take priority.
+# StaticFiles serves actual assets (JS, CSS, images).
+# The 404 handler catches any path that StaticFiles can't resolve (e.g. /games,
+# /admin) and returns index.html so React Router handles the route client-side.
 _static = os.path.join(os.path.dirname(__file__), "static")
 if os.path.isdir(_static):
     app.mount("/", StaticFiles(directory=_static, html=True), name="spa")
+
+    @app.exception_handler(StarletteHTTPException)
+    async def spa_fallback(request, exc):
+        if exc.status_code == 404:
+            index = os.path.join(_static, "index.html")
+            if os.path.isfile(index):
+                return FileResponse(index)
+        from fastapi.responses import JSONResponse
+        return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)

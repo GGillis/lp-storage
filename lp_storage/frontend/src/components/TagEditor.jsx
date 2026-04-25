@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Plus } from 'lucide-react'
 
 /**
@@ -12,6 +12,9 @@ export default function TagEditor({ recordId, apiBase = '/api/records', initialT
   const [tags, setTags] = useState(initialTags)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // Sync when parent updates initialTags (e.g. after AI tag suggestion)
+  useEffect(() => { setTags(initialTags) }, [initialTags])
 
   async function addTag(raw) {
     const tag = raw.trim().toLowerCase()

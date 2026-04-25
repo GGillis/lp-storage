@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.9] - 2026-04-25
+### Fixed
+- Direct URL navigation to subpages (e.g. `/games`, `/admin`) now works; FastAPI
+  was returning 404 for client-side routes — added a 404 exception handler that
+  serves `index.html` so React Router handles the path
+- Home / Games home grid now fills left-to-right before top-to-bottom (switched
+  from CSS `columns` to `grid`)
+- AI-suggested tags now appear immediately in the detail sheet without a refresh;
+  `TagEditor` was not re-syncing its local state when the parent updated `initialTags`
+
 ## [1.0.8] - 2026-04-25
 ### Added
 - AI tag suggestions via Claude API (Sonnet) for records and games

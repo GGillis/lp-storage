@@ -110,11 +110,9 @@ export default function GamesHome() {
             <p className="text-xs" style={{ color: 'var(--color-muted)' }}>{categoryFilter ? 'Try a different filter' : 'Add your first game to get started'}</p>
           </div>
         ) : (
-          <div className="p-3 sm:p-4 columns-3 sm:columns-4 md:columns-5 lg:columns-6 xl:columns-7 gap-2 sm:gap-3">
+          <div className="p-3 sm:p-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 sm:gap-3">
             {games.map(game => (
-              <div key={game.id} className="mb-2 sm:mb-3 break-inside-avoid">
-                <GameCard game={game} onClick={setSelected} />
-              </div>
+              <GameCard key={game.id} game={game} onClick={setSelected} />
             ))}
           </div>
         )}
@@ -133,9 +131,9 @@ export default function GamesHome() {
 
 function LoadingGrid() {
   return (
-    <div className="p-3 sm:p-4 columns-3 sm:columns-4 md:columns-5 lg:columns-6 xl:columns-7 gap-2 sm:gap-3">
+    <div className="p-3 sm:p-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 sm:gap-3">
       {Array.from({ length: 24 }).map((_, i) => (
-        <div key={i} className="mb-2 sm:mb-3 aspect-square w-full rounded-sm animate-pulse" style={{ background: 'var(--color-card)' }} />
+        <div key={i} className="aspect-square w-full rounded-sm animate-pulse" style={{ background: 'var(--color-card)' }} />
       ))}
     </div>
   )
