@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.8] - 2026-04-25
+### Added
+- AI tag suggestions via Claude API (Sonnet) for records and games
+  - "Suggest tags" button in the tags section of every record/game detail sheet
+  - Auto-suggest fires in the background when a new entry is saved
+  - Rate-limit guard (5 req/min free tier): button shows live countdown when limited
+  - Collection-wide tag vocabulary passed to every prompt so Claude reuses existing
+    tag forms instead of inventing variations (e.g. always "2 players", never "2-player")
+  - Prompts request 8-10 tags per item
+- Hidden `/admin` page: API key status, calls-this-minute counter, batch tagging
+  controls for records and games (untagged-only or all) at 4 calls/min with
+  live progress bar and stop button
+- `anthropic_api_key` add-on option in config.yaml / run.sh
+
 ## [1.0.7] - 2026-04-17
 ### Added
 - Add Record: barcode tab (UPC/EAN) — searches Discogs directly by barcode,

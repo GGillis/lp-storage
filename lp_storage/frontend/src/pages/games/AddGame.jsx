@@ -65,6 +65,9 @@ export default function AddGame() {
         body: JSON.stringify({ ...detail, notes, tags }),
       })
       if (!res.ok) { const err = await res.json(); throw new Error(err.detail || 'Save failed') }
+      const saved = await res.json()
+      // Fire-and-forget: auto-suggest tags in background (ignore rate-limit errors)
+      fetch(`/api/ai/suggest/games/${saved.id}`, { method: 'POST' }).catch(() => {})
       setStep(STEP.DONE)
     } catch (e) { setError(e.message) }
     finally { setLoading(false) }

@@ -1,11 +1,41 @@
 import { useEffect, useState } from 'react'
-import { X, Gamepad2, Trash2, Star } from 'lucide-react'
+import { X, Gamepad2, Trash2, Star, Sparkles } from 'lucide-react'
 import TagEditor from './TagEditor'
 
 export default function GameDetail({ game: initialGame, onClose, onDelete }) {
   const [game, setGame] = useState(initialGame)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState(null)
+  const [retryIn, setRetryIn] = useState(null)
+
+  async function handleSuggestTags() {
+    setAiLoading(true)
+    setAiError(null)
+    try {
+      const res = await fetch(`/api/ai/suggest/games/${game.id}`, { method: 'POST' })
+      if (res.status === 429) {
+        const data = await res.json()
+        const secs = parseInt(res.headers.get('Retry-After') || '60', 10)
+        setAiError(data.detail)
+        setRetryIn(secs)
+        const iv = setInterval(() => setRetryIn(s => { if (s <= 1) { clearInterval(iv); return null } return s - 1 }), 1000)
+        return
+      }
+      if (!res.ok) {
+        const data = await res.json()
+        setAiError(data.detail || 'Tag suggestion failed')
+        return
+      }
+      const data = await res.json()
+      setGame(g => ({ ...g, tags: data.tags }))
+    } catch {
+      setAiError('Could not reach server')
+    } finally {
+      setAiLoading(false)
+    }
+  }
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose() }
@@ -118,9 +148,21 @@ export default function GameDetail({ game: initialGame, onClose, onDelete }) {
 
         {/* Tags */}
         <div className="border-t px-4 py-3" style={{ borderColor: 'var(--color-border)' }}>
-          <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--color-muted)' }}>
-            Tags
-          </p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-muted)' }}>Tags</p>
+            <button
+              onClick={handleSuggestTags}
+              disabled={aiLoading || retryIn !== null}
+              className="flex items-center gap-1 text-xs transition-opacity hover:opacity-70 disabled:opacity-40"
+              style={{ color: 'var(--color-accent)' }}
+            >
+              <Sparkles size={11} />
+              {aiLoading ? 'Suggesting…' : retryIn ? `Retry in ${retryIn}s` : 'Suggest tags'}
+            </button>
+          </div>
+          {aiError && (
+            <p className="text-xs mb-2" style={{ color: '#f87171' }}>{aiError}</p>
+          )}
           <TagEditor
             recordId={game.id}
             apiBase="/api/games"

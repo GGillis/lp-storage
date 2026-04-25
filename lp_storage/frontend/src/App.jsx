@@ -12,6 +12,7 @@ import AddGame from './pages/games/AddGame'
 import GamesExplore from './pages/games/Explore'
 import GamesStats from './pages/games/Stats'
 import { useCollection } from './context/CollectionContext'
+import Admin from './pages/Admin'
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -64,6 +65,7 @@ export default function App() {
             <Route path="/games/add" element={<AddGame />} />
             <Route path="/games/explore" element={<GamesExplore />} />
             <Route path="/games/stats" element={<GamesStats />} />
+            <Route path="/admin" element={<Admin />} />
           </Routes>
         </main>
       </div>
