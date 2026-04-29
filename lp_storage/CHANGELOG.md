@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.10] - 2026-04-29
+### Added
+- "Explore" button on every record detail sheet — starts an explore session seeded
+  from that record, skipping the keyword flow and landing directly in the
+  similar/contrast view
+- `showExplore={false}` prop suppresses the button when RecordDetail is rendered
+  inside the Explore page itself (where navigating to the same route would be a no-op)
+
 ## [1.0.9] - 2026-04-25
 ### Fixed
 - Direct URL navigation to subpages (e.g. `/games`, `/admin`) now works; FastAPI

@@ -1,17 +1,23 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Shuffle, RotateCcw, Disc3 } from 'lucide-react'
 import RecordDetail from '../components/RecordDetail'
 
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function Explore() {
+  const location = useLocation()
   const [allKeywords, setAllKeywords] = useState({ genres: [], styles: [], tags: [], decades: [] })
   const [inputValue, setInputValue] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
   const [keywords, setKeywords] = useState([])         // active filter stack
   const [suggestions, setSuggestions] = useState(null) // { records, related_keywords, total }
   const [suggestLoading, setSuggestLoading] = useState(false)
-  const [playedRecords, setPlayedRecords] = useState([]) // [newest, ..., oldest]
+  const [playedRecords, setPlayedRecords] = useState(() => {
+    // Seed from navigation state when arriving via "Explore" button on a record
+    const seed = location.state?.seedRecord
+    return seed ? [seed] : []
+  })
   const [related, setRelated] = useState(null)           // { similar, different }
   const [relatedLoading, setRelatedLoading] = useState(false)
   const [detailRecord, setDetailRecord] = useState(null) // RecordDetail overlay
@@ -189,6 +195,7 @@ export default function Explore() {
               setPlayedRecords(r => r.filter(x => x.id !== id))
               setDetailRecord(null)
             }}
+            showExplore={false}
           />
         )}
       </div>

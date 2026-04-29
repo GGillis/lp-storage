@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
-import { X, Disc3, Trash2, Sparkles } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { X, Disc3, Trash2, Sparkles, Compass } from 'lucide-react'
 import TagEditor from './TagEditor'
 
-export default function RecordDetail({ record: initialRecord, onClose, onDelete }) {
+export default function RecordDetail({ record: initialRecord, onClose, onDelete, showExplore = true }) {
+  const navigate = useNavigate()
   const [record, setRecord] = useState(initialRecord)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -124,14 +126,27 @@ export default function RecordDetail({ record: initialRecord, onClose, onDelete 
             )}
           </div>
 
-          <button
-            onClick={onClose}
-            className="self-start p-1 rounded transition-opacity hover:opacity-70"
-            style={{ color: 'var(--color-muted)' }}
-            aria-label="Close"
-          >
-            <X size={18} />
-          </button>
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            <button
+              onClick={onClose}
+              className="p-1 rounded transition-opacity hover:opacity-70"
+              style={{ color: 'var(--color-muted)' }}
+              aria-label="Close"
+            >
+              <X size={18} />
+            </button>
+            {showExplore && (
+              <button
+                onClick={() => { onClose(); navigate('/explore', { state: { seedRecord: record } }) }}
+                className="flex items-center gap-1 px-2 py-1 rounded text-xs transition-opacity hover:opacity-80"
+                style={{ background: 'var(--color-card)', color: 'var(--color-accent)', border: '1px solid var(--color-border)' }}
+                title="Start explore session from this record"
+              >
+                <Compass size={11} />
+                Explore
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Tags */}
