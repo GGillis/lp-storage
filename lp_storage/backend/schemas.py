@@ -120,3 +120,9 @@ class BGGCandidate(BaseModel):
     min_playtime: Optional[int] = None
     max_playtime: Optional[int] = None
     bgg_rating: Optional[float] = None
+
+
+class PlayStats(BaseModel):
+    plays: int
+    first_played: Optional[datetime] = None
+    last_played: Optional[datetime] = None

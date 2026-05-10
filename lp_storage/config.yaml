@@ -1,6 +1,6 @@
 name: LP Storage
 description: Vinyl record and board game collection manager — browse, search, and explore your collection.
-version: "1.0.10"
+version: "1.0.11"
 slug: lp_storage
 init: false
 arch:

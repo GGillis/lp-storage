@@ -6,10 +6,26 @@ const VIEWS = [
   { key: 'by_genre',  label: 'By genre'  },
 ]
 
+const PLAY_SORTS = [
+  { key: 'plays_desc',       label: 'Most played'   },
+  { key: 'last_played_desc', label: 'Last played ↓' },
+  { key: 'last_played_asc',  label: 'Last played ↑' },
+  { key: 'first_played_desc', label: 'First played ↓' },
+  { key: 'first_played_asc', label: 'First played ↑' },
+]
+
+function fmtDate(iso) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
 export default function Stats() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState('by_decade')
+  const [plays, setPlays] = useState([])
+  const [playsSort, setPlaysSort] = useState('plays_desc')
+  const [playsLoading, setPlaysLoading] = useState(false)
 
   useEffect(() => {
     fetch('/api/stats/')
@@ -18,6 +34,15 @@ export default function Stats() {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    setPlaysLoading(true)
+    fetch(`/api/stats/plays?collection=records&sort=${playsSort}&limit=5`)
+      .then(r => r.json())
+      .then(setPlays)
+      .catch(() => setPlays([]))
+      .finally(() => setPlaysLoading(false))
+  }, [playsSort])
 
   if (loading) return <Skeleton />
   if (!data) return (
@@ -28,7 +53,7 @@ export default function Stats() {
 
   const { totals, by_decade, by_genre } = data
   const rows = view === 'by_decade' ? by_decade : by_genre
-  const maxCount = rows.length ? rows[0].records : 1  // rows are sorted desc
+  const maxCount = rows.length ? rows[0].records : 1
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
@@ -86,7 +111,6 @@ export default function Stats() {
           className="rounded-lg overflow-hidden"
           style={{ border: '1px solid var(--color-border)' }}
         >
-          {/* Header */}
           <div
             className="grid grid-cols-12 gap-2 px-4 py-2 text-xs font-semibold uppercase tracking-wider"
             style={{ background: 'var(--color-surface)', color: 'var(--color-muted)', borderBottom: '1px solid var(--color-border)' }}
@@ -106,7 +130,6 @@ export default function Stats() {
                 borderTop: i > 0 ? '1px solid var(--color-border)' : 'none',
               }}
             >
-              {/* Label + bar */}
               <div className="col-span-3">
                 <p className="text-sm font-medium truncate" style={{ color: 'var(--color-text)' }}>
                   {row.label}
@@ -137,6 +160,71 @@ export default function Stats() {
           ))}
         </div>
       )}
+
+      {/* Plays leaderboard */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Play log</h2>
+          <div className="flex rounded-lg p-0.5 gap-0.5 overflow-x-auto" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+            {PLAY_SORTS.map(o => (
+              <button
+                key={o.key}
+                onClick={() => setPlaysSort(o.key)}
+                className="shrink-0 px-2 py-1 rounded text-xs font-medium transition-colors"
+                style={{
+                  background: playsSort === o.key ? 'var(--color-card)' : 'transparent',
+                  color: playsSort === o.key ? 'var(--color-accent)' : 'var(--color-muted)',
+                  border: playsSort === o.key ? '1px solid var(--color-border)' : '1px solid transparent',
+                }}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {playsLoading ? (
+          <div className="h-32 rounded-lg animate-pulse" style={{ background: 'var(--color-card)' }} />
+        ) : plays.length === 0 ? (
+          <p className="text-sm" style={{ color: 'var(--color-muted)' }}>No plays logged yet</p>
+        ) : (
+          <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
+            <div
+              className="grid grid-cols-12 gap-2 px-4 py-2 text-xs font-semibold uppercase tracking-wider"
+              style={{ background: 'var(--color-surface)', color: 'var(--color-muted)', borderBottom: '1px solid var(--color-border)' }}
+            >
+              <span className="col-span-4">Title</span>
+              <span className="col-span-1 text-right">Plays</span>
+              <span className="col-span-3 text-right">First</span>
+              <span className="col-span-4 text-right">Last</span>
+            </div>
+            {plays.map((row, i) => (
+              <div
+                key={row.id}
+                className="grid grid-cols-12 gap-2 px-4 py-3 items-center"
+                style={{
+                  background: i % 2 === 0 ? 'var(--color-card)' : 'var(--color-surface)',
+                  borderTop: i > 0 ? '1px solid var(--color-border)' : 'none',
+                }}
+              >
+                <div className="col-span-4 min-w-0">
+                  <p className="text-xs font-medium truncate" style={{ color: 'var(--color-text)' }}>{row.title}</p>
+                  <p className="text-xs truncate" style={{ color: 'var(--color-muted)' }}>{row.subtitle}</p>
+                </div>
+                <span className="col-span-1 text-sm text-right tabular-nums font-semibold" style={{ color: 'var(--color-accent)' }}>
+                  {row.plays}
+                </span>
+                <span className="col-span-3 text-xs text-right" style={{ color: 'var(--color-muted)' }}>
+                  {fmtDate(row.first_played)}
+                </span>
+                <span className="col-span-4 text-xs text-right" style={{ color: 'var(--color-muted)' }}>
+                  {fmtDate(row.last_played)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

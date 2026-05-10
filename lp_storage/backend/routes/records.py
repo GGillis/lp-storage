@@ -1,12 +1,12 @@
 from datetime import datetime, timezone
-from typing import Optional, Literal
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import asc, desc
+from sqlalchemy import asc, desc, func, select
 from database import get_db
-from models import Record, RecordTag
-from schemas import RecordCreate, RecordResponse, TagCreate
+from models import Record, RecordTag, RecordPlay
+from schemas import RecordCreate, RecordResponse, TagCreate, PlayStats
 from services import discogs
 
 router = APIRouter(tags=["records"])
@@ -29,6 +29,33 @@ _SORT_MAP = {
     "year_desc":   desc(Record.year),
 }
 
+_PLAY_SORT_KEYS = frozenset({"plays_desc", "last_played_desc", "last_played_asc", "first_played_desc", "first_played_asc"})
+
+
+def _play_subquery():
+    return (
+        select(
+            RecordPlay.record_id.label("record_id"),
+            func.count(RecordPlay.id).label("play_count"),
+            func.min(RecordPlay.played_at).label("first_played"),
+            func.max(RecordPlay.played_at).label("last_played"),
+        )
+        .group_by(RecordPlay.record_id)
+        .subquery()
+    )
+
+
+def _play_order(sort: str, sq):
+    if sort == "plays_desc":
+        return desc(sq.c.play_count).nulls_last()
+    if sort == "last_played_desc":
+        return desc(sq.c.last_played).nulls_last()
+    if sort == "last_played_asc":
+        return asc(sq.c.last_played).nulls_last()
+    if sort == "first_played_desc":
+        return desc(sq.c.first_played).nulls_last()
+    return asc(sq.c.first_played).nulls_last()  # first_played_asc
+
 
 @router.get("/", response_model=list[RecordResponse])
 def list_records(
@@ -40,6 +67,7 @@ def list_records(
     track: Optional[str] = None,
     year_from: Optional[int] = None,
     year_to: Optional[int] = None,
+    never_played: bool = False,
     sort: Optional[str] = "date_desc",
     db: Session = Depends(get_db),
 ):
@@ -62,14 +90,26 @@ def list_records(
         query = query.filter(Record.year >= year_from)
     if year_to is not None:
         query = query.filter(Record.year <= year_to)
-    order = _SORT_MAP.get(sort, desc(Record.date_added))
+
+    if sort in _PLAY_SORT_KEYS or never_played:
+        sq = _play_subquery()
+        query = query.outerjoin(sq, Record.id == sq.c.record_id)
+        if never_played:
+            query = query.filter(sq.c.play_count == None)
+        if sort in _PLAY_SORT_KEYS:
+            order = _play_order(sort, sq)
+        else:
+            order = _SORT_MAP.get(sort, desc(Record.date_added))
+    else:
+        order = _SORT_MAP.get(sort, desc(Record.date_added))
+
     return query.order_by(order).all()
 
 
 @router.get("/random", response_model=list[RecordResponse])
 def random_records(limit: int = 50, db: Session = Depends(get_db)):
-    from sqlalchemy.sql.expression import func
-    return db.query(Record).order_by(func.random()).limit(limit).all()
+    from sqlalchemy.sql.expression import func as sqlfunc
+    return db.query(Record).order_by(sqlfunc.random()).limit(limit).all()
 
 
 @router.get("/{record_id}", response_model=RecordResponse)
@@ -153,3 +193,48 @@ def remove_tag(record_id: int, tag: str, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(record)
     return record.tags
+
+
+# ── Play endpoints ─────────────────────────────────────────────────────────────
+
+def _play_stats(record_id: int, db: Session) -> dict:
+    row = db.query(
+        func.count(RecordPlay.id).label("plays"),
+        func.min(RecordPlay.played_at).label("first_played"),
+        func.max(RecordPlay.played_at).label("last_played"),
+    ).filter(RecordPlay.record_id == record_id).first()
+    return {
+        "plays": row.plays or 0,
+        "first_played": row.first_played,
+        "last_played": row.last_played,
+    }
+
+
+@router.get("/{record_id}/plays", response_model=PlayStats)
+def get_plays(record_id: int, db: Session = Depends(get_db)):
+    _get_or_404(record_id, db)
+    return _play_stats(record_id, db)
+
+
+@router.post("/{record_id}/plays", response_model=PlayStats, status_code=201)
+def log_play(record_id: int, db: Session = Depends(get_db)):
+    _get_or_404(record_id, db)
+    db.add(RecordPlay(record_id=record_id, played_at=datetime.now(timezone.utc)))
+    db.commit()
+    return _play_stats(record_id, db)
+
+
+@router.delete("/{record_id}/plays/last", response_model=PlayStats)
+def undo_last_play(record_id: int, db: Session = Depends(get_db)):
+    _get_or_404(record_id, db)
+    last = (
+        db.query(RecordPlay)
+        .filter(RecordPlay.record_id == record_id)
+        .order_by(desc(RecordPlay.played_at))
+        .first()
+    )
+    if not last:
+        raise HTTPException(status_code=404, detail="No plays to undo")
+    db.delete(last)
+    db.commit()
+    return _play_stats(record_id, db)

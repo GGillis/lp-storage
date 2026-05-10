@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
-import { X, Gamepad2, Trash2, Star, Sparkles } from 'lucide-react'
+import { X, Gamepad2, Trash2, Star, Sparkles, Play, RotateCcw } from 'lucide-react'
 import TagEditor from './TagEditor'
+
+function fmtDate(iso) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
 
 export default function GameDetail({ game: initialGame, onClose, onDelete }) {
   const [game, setGame] = useState(initialGame)
@@ -9,6 +14,32 @@ export default function GameDetail({ game: initialGame, onClose, onDelete }) {
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState(null)
   const [retryIn, setRetryIn] = useState(null)
+  const [playStats, setPlayStats] = useState(null)
+  const [playLogging, setPlayLogging] = useState(false)
+
+  useEffect(() => {
+    fetch(`/api/games/${game.id}/plays`)
+      .then(r => r.json())
+      .then(setPlayStats)
+      .catch(() => {})
+  }, [game.id])
+
+  async function handleLogPlay() {
+    setPlayLogging(true)
+    try {
+      const res = await fetch(`/api/games/${game.id}/plays`, { method: 'POST' })
+      if (res.ok) setPlayStats(await res.json())
+    } finally {
+      setPlayLogging(false)
+    }
+  }
+
+  async function handleUndoPlay() {
+    try {
+      const res = await fetch(`/api/games/${game.id}/plays/last`, { method: 'DELETE' })
+      if (res.ok) setPlayStats(await res.json())
+    } catch {}
+  }
 
   async function handleSuggestTags() {
     setAiLoading(true)
@@ -145,6 +176,46 @@ export default function GameDetail({ game: initialGame, onClose, onDelete }) {
             <p className="text-xs" style={{ color: 'var(--color-text)' }}>{game.mechanics}</p>
           </div>
         )}
+
+        {/* Plays */}
+        <div className="border-t px-4 py-3" style={{ borderColor: 'var(--color-border)' }}>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-muted)' }}>Plays</p>
+            <div className="flex items-center gap-2">
+              {playStats?.plays > 0 && (
+                <button
+                  onClick={handleUndoPlay}
+                  className="flex items-center gap-1 text-xs transition-opacity hover:opacity-70"
+                  style={{ color: 'var(--color-muted)' }}
+                  title="Undo last play"
+                >
+                  <RotateCcw size={11} />
+                  Undo
+                </button>
+              )}
+              <button
+                onClick={handleLogPlay}
+                disabled={playLogging}
+                className="flex items-center gap-1 text-xs transition-opacity hover:opacity-70 disabled:opacity-40"
+                style={{ color: 'var(--color-accent)' }}
+              >
+                <Play size={11} fill="currentColor" />
+                {playLogging ? 'Logging…' : 'Log play'}
+              </button>
+            </div>
+          </div>
+          {playStats == null ? (
+            <p className="text-xs" style={{ color: 'var(--color-muted)' }}>—</p>
+          ) : playStats.plays === 0 ? (
+            <p className="text-xs" style={{ color: 'var(--color-muted)' }}>No plays logged yet</p>
+          ) : (
+            <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--color-muted)' }}>
+              <span><span className="font-semibold tabular-nums" style={{ color: 'var(--color-text)' }}>{playStats.plays}</span> {playStats.plays === 1 ? 'play' : 'plays'}</span>
+              <span>First: <span style={{ color: 'var(--color-text)' }}>{fmtDate(playStats.first_played)}</span></span>
+              <span>Last: <span style={{ color: 'var(--color-text)' }}>{fmtDate(playStats.last_played)}</span></span>
+            </div>
+          )}
+        </div>
 
         {/* Tags */}
         <div className="border-t px-4 py-3" style={{ borderColor: 'var(--color-border)' }}>

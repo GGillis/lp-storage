@@ -4,13 +4,16 @@ import CoverCard from '../components/CoverCard'
 import RecordDetail from '../components/RecordDetail'
 
 const SORT_OPTIONS = [
-  { key: 'random',      label: 'Random'     },
-  { key: 'date_desc',   label: 'Newest'     },
-  { key: 'date_asc',    label: 'Oldest'     },
-  { key: 'artist_asc',  label: 'Artist A–Z' },
-  { key: 'year_asc',    label: 'Year ↑'     },
-  { key: 'year_desc',   label: 'Year ↓'     },
-  { key: 'title_asc',   label: 'Title A–Z'  },
+  { key: 'random',           label: 'Random'       },
+  { key: 'date_desc',        label: 'Newest'       },
+  { key: 'date_asc',         label: 'Oldest'       },
+  { key: 'artist_asc',       label: 'Artist A–Z'  },
+  { key: 'year_asc',         label: 'Year ↑'       },
+  { key: 'year_desc',        label: 'Year ↓'       },
+  { key: 'title_asc',        label: 'Title A–Z'    },
+  { key: 'plays_desc',       label: 'Most played'  },
+  { key: 'last_played_desc', label: 'Last played'  },
+  { key: 'first_played_asc', label: 'First played' },
 ]
 
 export default function Home() {
@@ -20,9 +23,10 @@ export default function Home() {
   const [error, setError] = useState(null)
   const [sort, setSort] = useState('random')
   const [genreFilter, setGenreFilter] = useState('')
+  const [neverPlayed, setNeverPlayed] = useState(false)
   const [allGenres, setAllGenres] = useState([])
 
-  const fetchRecords = useCallback(async (sortKey, genre) => {
+  const fetchRecords = useCallback(async (sortKey, genre, np) => {
     setLoading(true)
     setError(null)
     try {
@@ -32,6 +36,7 @@ export default function Home() {
       } else {
         const params = new URLSearchParams({ sort: sortKey })
         if (genre) params.set('genre', genre)
+        if (np) params.set('never_played', 'true')
         res = await fetch(`/api/records/?${params}`)
       }
       if (!res.ok) throw new Error('Failed to load collection')
@@ -44,7 +49,6 @@ export default function Home() {
     }
   }, [])
 
-  // Fetch available genres for the filter pill row
   useEffect(() => {
     fetch('/api/explore/keywords')
       .then(r => r.json())
@@ -53,17 +57,20 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    fetchRecords(sort, genreFilter)
-  }, [sort, genreFilter, fetchRecords])
+    fetchRecords(sort, genreFilter, neverPlayed)
+  }, [sort, genreFilter, neverPlayed, fetchRecords])
 
   function handleSort(key) {
     setSort(key)
   }
 
   function handleGenre(genre) {
-    // Toggle: click active genre to clear it
     setGenreFilter(prev => prev === genre ? '' : genre)
-    // Genre filter only makes sense with a deterministic sort
+    if (sort === 'random') setSort('date_desc')
+  }
+
+  function handleNeverPlayed() {
+    setNeverPlayed(prev => !prev)
     if (sort === 'random') setSort('date_desc')
   }
 
@@ -93,25 +100,34 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Genre filter pills — only shown when genres exist */}
-        {allGenres.length > 0 && (
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
-            {allGenres.map(g => (
-              <button
-                key={g}
-                onClick={() => handleGenre(g)}
-                className="shrink-0 px-2.5 py-1 rounded-full text-xs transition-colors"
-                style={{
-                  background: genreFilter === g ? 'var(--color-card)' : 'transparent',
-                  color: genreFilter === g ? 'var(--color-text)' : 'var(--color-muted)',
-                  border: genreFilter === g ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
-                }}
-              >
-                {g}
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Filter pills — never played + genre */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+          <button
+            onClick={handleNeverPlayed}
+            className="shrink-0 px-2.5 py-1 rounded-full text-xs transition-colors"
+            style={{
+              background: neverPlayed ? 'var(--color-card)' : 'transparent',
+              color: neverPlayed ? 'var(--color-text)' : 'var(--color-muted)',
+              border: neverPlayed ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
+            }}
+          >
+            Never played
+          </button>
+          {allGenres.map(g => (
+            <button
+              key={g}
+              onClick={() => handleGenre(g)}
+              className="shrink-0 px-2.5 py-1 rounded-full text-xs transition-colors"
+              style={{
+                background: genreFilter === g ? 'var(--color-card)' : 'transparent',
+                color: genreFilter === g ? 'var(--color-text)' : 'var(--color-muted)',
+                border: genreFilter === g ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
+              }}
+            >
+              {g}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Grid */}
@@ -119,9 +135,9 @@ export default function Home() {
         {loading ? (
           <LoadingGrid />
         ) : error ? (
-          <ErrorState message={error} onRetry={() => fetchRecords(sort, genreFilter)} />
+          <ErrorState message={error} onRetry={() => fetchRecords(sort, genreFilter, neverPlayed)} />
         ) : records.length === 0 ? (
-          <EmptyState hasFilter={!!genreFilter} />
+          <EmptyState hasFilter={!!genreFilter || neverPlayed} neverPlayed={neverPlayed} />
         ) : (
           <div className="p-3 sm:p-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 sm:gap-3">
             {records.map(record => (
@@ -171,14 +187,14 @@ function ErrorState({ message, onRetry }) {
   )
 }
 
-function EmptyState({ hasFilter }) {
+function EmptyState({ hasFilter, neverPlayed }) {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-2">
       <p className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
-        {hasFilter ? 'No records match this genre' : 'No records yet'}
+        {neverPlayed ? 'All records have been played' : hasFilter ? 'No records match this genre' : 'No records yet'}
       </p>
       <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
-        {hasFilter ? 'Try a different filter' : 'Add your first record to get started'}
+        {neverPlayed ? 'Great job!' : hasFilter ? 'Try a different filter' : 'Add your first record to get started'}
       </p>
     </div>
   )

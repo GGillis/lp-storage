@@ -87,3 +87,27 @@ class Record(Base):
     @property
     def tags(self) -> list[str]:
         return sorted(t.tag for t in self.tag_objects)
+
+
+class RecordPlay(Base):
+    __tablename__ = "record_plays"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    record_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("records.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    played_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
+
+
+class GamePlay(Base):
+    __tablename__ = "game_plays"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    game_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("games.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    played_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+    )

@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X, Disc3, Trash2, Sparkles, Compass } from 'lucide-react'
+import { X, Disc3, Trash2, Sparkles, Compass, Play, RotateCcw } from 'lucide-react'
 import TagEditor from './TagEditor'
+
+function fmtDate(iso) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
 
 export default function RecordDetail({ record: initialRecord, onClose, onDelete, showExplore = true }) {
   const navigate = useNavigate()
@@ -9,8 +14,34 @@ export default function RecordDetail({ record: initialRecord, onClose, onDelete,
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
-  const [aiError, setAiError] = useState(null)  // null | string
-  const [retryIn, setRetryIn] = useState(null)  // seconds countdown
+  const [aiError, setAiError] = useState(null)
+  const [retryIn, setRetryIn] = useState(null)
+  const [playStats, setPlayStats] = useState(null)
+  const [playLogging, setPlayLogging] = useState(false)
+
+  useEffect(() => {
+    fetch(`/api/records/${record.id}/plays`)
+      .then(r => r.json())
+      .then(setPlayStats)
+      .catch(() => {})
+  }, [record.id])
+
+  async function handleLogPlay() {
+    setPlayLogging(true)
+    try {
+      const res = await fetch(`/api/records/${record.id}/plays`, { method: 'POST' })
+      if (res.ok) setPlayStats(await res.json())
+    } finally {
+      setPlayLogging(false)
+    }
+  }
+
+  async function handleUndoPlay() {
+    try {
+      const res = await fetch(`/api/records/${record.id}/plays/last`, { method: 'DELETE' })
+      if (res.ok) setPlayStats(await res.json())
+    } catch {}
+  }
 
   async function handleSuggestTags() {
     setAiLoading(true)
@@ -52,7 +83,6 @@ export default function RecordDetail({ record: initialRecord, onClose, onDelete,
     }
   }
 
-  // Close on Escape
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', handler)
@@ -147,6 +177,49 @@ export default function RecordDetail({ record: initialRecord, onClose, onDelete,
               </button>
             )}
           </div>
+        </div>
+
+        {/* Plays */}
+        <div
+          className="border-t px-4 py-3"
+          style={{ borderColor: 'var(--color-border)' }}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-muted)' }}>Plays</p>
+            <div className="flex items-center gap-2">
+              {playStats?.plays > 0 && (
+                <button
+                  onClick={handleUndoPlay}
+                  className="flex items-center gap-1 text-xs transition-opacity hover:opacity-70"
+                  style={{ color: 'var(--color-muted)' }}
+                  title="Undo last play"
+                >
+                  <RotateCcw size={11} />
+                  Undo
+                </button>
+              )}
+              <button
+                onClick={handleLogPlay}
+                disabled={playLogging}
+                className="flex items-center gap-1 text-xs transition-opacity hover:opacity-70 disabled:opacity-40"
+                style={{ color: 'var(--color-accent)' }}
+              >
+                <Play size={11} fill="currentColor" />
+                {playLogging ? 'Logging…' : 'Log play'}
+              </button>
+            </div>
+          </div>
+          {playStats == null ? (
+            <p className="text-xs" style={{ color: 'var(--color-muted)' }}>—</p>
+          ) : playStats.plays === 0 ? (
+            <p className="text-xs" style={{ color: 'var(--color-muted)' }}>No plays logged yet</p>
+          ) : (
+            <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--color-muted)' }}>
+              <span><span className="font-semibold tabular-nums" style={{ color: 'var(--color-text)' }}>{playStats.plays}</span> {playStats.plays === 1 ? 'play' : 'plays'}</span>
+              <span>First: <span style={{ color: 'var(--color-text)' }}>{fmtDate(playStats.first_played)}</span></span>
+              <span>Last: <span style={{ color: 'var(--color-text)' }}>{fmtDate(playStats.last_played)}</span></span>
+            </div>
+          )}
         </div>
 
         {/* Tags */}

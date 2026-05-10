@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.11] - 2026-05-10
+### Added
+- Play tracking for records and games: log plays from the detail sheet with a "Log play" button; undo the last play with the "Undo" button
+- Detail sheets now show play count, first played date, and last played date
+- Stats page: "Play log" leaderboard (top 5) with five sort modes — most played, last played ↓/↑, first played ↓/↑
+- Collection sort options: "Most played", "Last played", "First played" for both records and games
+- "Never played" filter pill in the collection toolbar (records and games)
+- Backend: `record_plays` and `game_plays` tables (auto-created on startup); new REST endpoints `GET/POST /api/records/{id}/plays`, `DELETE /api/records/{id}/plays/last` (and games equivalents); `GET /api/stats/plays` leaderboard endpoint
+
 ## [1.0.10] - 2026-04-29
 ### Added
 - "Explore" button on every record detail sheet — starts an explore session seeded

@@ -7,8 +7,9 @@ import re
 from collections import defaultdict
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import asc, desc, func, select
 from database import get_db
-from models import Record, Game
+from models import Record, Game, RecordPlay, GamePlay
 
 router = APIRouter(tags=["stats"])
 
@@ -195,3 +196,69 @@ def get_stats(
                 _record_seconds_estimated,
             ),
         }
+
+
+_PLAYS_SORT_MAP = {
+    "plays_desc":       lambda sq: desc(sq.c.play_count),
+    "last_played_desc": lambda sq: desc(sq.c.last_played),
+    "last_played_asc":  lambda sq: asc(sq.c.last_played),
+    "first_played_desc": lambda sq: desc(sq.c.first_played),
+    "first_played_asc": lambda sq: asc(sq.c.first_played),
+}
+
+
+@router.get("/plays")
+def get_plays_leaderboard(
+    collection: str = Query("records", pattern="^(records|games)$"),
+    sort: str = Query("plays_desc"),
+    limit: int = Query(5, le=20),
+    db: Session = Depends(get_db),
+):
+    order_fn = _PLAYS_SORT_MAP.get(sort, _PLAYS_SORT_MAP["plays_desc"])
+
+    if collection == "games":
+        sq = (
+            select(
+                GamePlay.game_id.label("item_id"),
+                func.count(GamePlay.id).label("play_count"),
+                func.min(GamePlay.played_at).label("first_played"),
+                func.max(GamePlay.played_at).label("last_played"),
+            )
+            .group_by(GamePlay.game_id)
+            .subquery()
+        )
+        rows = (
+            db.query(Game.id, Game.title, Game.designers, sq.c.play_count, sq.c.first_played, sq.c.last_played)
+            .join(sq, Game.id == sq.c.item_id)
+            .order_by(order_fn(sq))
+            .limit(limit)
+            .all()
+        )
+        return [
+            {"id": r.id, "title": r.title, "subtitle": r.designers, "plays": r.play_count,
+             "first_played": r.first_played, "last_played": r.last_played}
+            for r in rows
+        ]
+    else:
+        sq = (
+            select(
+                RecordPlay.record_id.label("item_id"),
+                func.count(RecordPlay.id).label("play_count"),
+                func.min(RecordPlay.played_at).label("first_played"),
+                func.max(RecordPlay.played_at).label("last_played"),
+            )
+            .group_by(RecordPlay.record_id)
+            .subquery()
+        )
+        rows = (
+            db.query(Record.id, Record.title, Record.artist, sq.c.play_count, sq.c.first_played, sq.c.last_played)
+            .join(sq, Record.id == sq.c.item_id)
+            .order_by(order_fn(sq))
+            .limit(limit)
+            .all()
+        )
+        return [
+            {"id": r.id, "title": r.title, "subtitle": r.artist, "plays": r.play_count,
+             "first_played": r.first_played, "last_played": r.last_played}
+            for r in rows
+        ]
